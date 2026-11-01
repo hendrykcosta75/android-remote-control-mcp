@@ -87,6 +87,8 @@ private val ALL_TOOL_CATEGORIES: List<ToolCategory> =
                 ToolEntry("open_notifications", R.string.mcp_tool_open_notifications),
                 ToolEntry("open_quick_settings", R.string.mcp_tool_open_quick_settings),
                 ToolEntry("dismiss_keyboard", R.string.mcp_tool_dismiss_keyboard),
+                ToolEntry("unlock_screen", R.string.mcp_tool_unlock_screen),
+                ToolEntry("lock_screen", R.string.mcp_tool_lock_screen),
             ),
         ),
         ToolCategory(

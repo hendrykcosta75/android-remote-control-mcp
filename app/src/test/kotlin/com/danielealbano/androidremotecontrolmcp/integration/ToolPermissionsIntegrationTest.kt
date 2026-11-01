@@ -283,6 +283,8 @@ class ToolPermissionsIntegrationTest {
                 "open_notifications",
                 "open_quick_settings",
                 "dismiss_keyboard",
+                "unlock_screen",
+                "lock_screen",
                 "pinch",
                 "custom_gesture",
                 "find_nodes",
