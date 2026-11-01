@@ -34,12 +34,12 @@ This document provides a comprehensive reference for all MCP tools available in 
 
 ## Overview
 
-The MCP server exposes 58 tools via the JSON-RPC 2.0 protocol, organized into 14 categories:
+The MCP server exposes 60 tools via the JSON-RPC 2.0 protocol, organized into 14 categories:
 
 | Category | Tools | Plan |
 |----------|-------|------|
 | Screen Introspection | `android_get_screen_state` | 7, 15 |
-| System Actions | `android_press_back`, `android_press_home`, `android_press_recents`, `android_open_notifications`, `android_open_quick_settings`, `android_dismiss_keyboard` | 6 |
+| System Actions | `android_press_back`, `android_press_home`, `android_press_recents`, `android_open_notifications`, `android_open_quick_settings`, `android_dismiss_keyboard`, `android_unlock_screen`, `android_lock_screen` | 6 |
 | Touch Actions | `android_tap`, `android_long_press`, `android_double_tap`, `android_swipe`, `android_scroll` | 8 |
 | Gestures | `android_pinch`, `android_custom_gesture` | 8 |
 | Node Actions | `android_find_nodes`, `android_click_node`, `android_long_click_node`, `android_tap_node`, `android_scroll_to_node`, `android_scroll_node` | 9, 35 |
@@ -670,6 +670,72 @@ When no keyboard was open, the response text is `"No keyboard was open"`.
 **Error Cases**:
 - **Permission denied**: Accessibility service not enabled
 - **Action failed**: Dismissing the keyboard failed
+
+---
+
+### `android_unlock_screen`
+
+Wakes the screen and unlocks the device by typing the PIN stored on the device into the system keyguard keypad through the accessibility service. Works over any network the MCP server is reachable on (no ADB needed at call time).
+
+- The PIN is **never** a tool parameter nor returned. It is set only over ADB, through the DUMP-gated configuration receiver, and stored encrypted with an Android Keystore AES-GCM key:
+  ```bash
+  adb shell am broadcast -a com.danielealbano.androidremotecontrolmcp.ADB_CONFIGURE \
+    -n com.danielealbano.androidremotecontrolmcp/.services.mcp.AdbConfigReceiver \
+    --es unlock_pin '<PIN>'          # --es unlock_pin '' clears it
+  ```
+- Keys are pressed only after a complete `0`-`9` keypad is found in a System UI window; it never taps blind coordinates.
+- **One attempt only.** If the device is still locked after typing, the tool sets a lockout and returns `unlock_failed_locked_out`; further calls return `locked_out` until the owner clears it with `--ez unlock_reset_lockout true` over ADB. This keeps a wrong or changed PIN from burning the device's own attempt limit.
+
+**Input Schema**:
+```json
+{
+  "type": "object",
+  "properties": {},
+  "required": []
+}
+```
+
+**Response Example (Success)**:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"status\":\"unlocked\",\"wake_method\":\"wake_lock\",\"digit_keys_found\":10,\"confirm_pressed\":true,\"swipes\":1,\"systemui_windows\":0}"
+      }
+    ]
+  }
+}
+```
+
+`status` is one of `unlocked`, `already_unlocked`, `no_pin_configured`, `locked_out`, `wake_failed`, `keypad_not_found`, `pin_unreadable`, `pin_has_non_digit_chars` or `unlock_failed_locked_out`.
+
+**Error Cases**:
+- **Permission denied**: Accessibility service not enabled
+
+---
+
+### `android_lock_screen`
+
+Locks the device and turns the screen off (accessibility global action).
+
+**Input Schema**:
+```json
+{
+  "type": "object",
+  "properties": {},
+  "required": []
+}
+```
+
+**Response**: `"Lock screen executed successfully"`.
+
+**Error Cases**:
+- **Permission denied**: Accessibility service not enabled
+- **Action failed**: The lock action failed
 
 ---
 

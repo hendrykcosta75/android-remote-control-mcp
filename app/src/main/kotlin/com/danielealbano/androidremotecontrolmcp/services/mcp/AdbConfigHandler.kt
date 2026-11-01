@@ -16,6 +16,7 @@ import com.danielealbano.androidremotecontrolmcp.services.storage.StorageLocatio
 import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTunnelEnrollment
 import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTunnelEnv
 import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTunnelHosts
+import com.danielealbano.androidremotecontrolmcp.services.unlock.UnlockPinStore
 import com.danielealbano.androidremotecontrolmcp.utils.RecentsUtils
 
 /**
@@ -91,6 +92,7 @@ class AdbConfigHandler(
         applyToolPermissions(intent)
         applyStorageLocationPermissions(intent)
         applyArcTunnelEnroll(intent)
+        applyUnlockPin(context, intent)
 
         Log.i(TAG, "ADB configuration applied successfully")
     }
@@ -403,6 +405,33 @@ class AdbConfigHandler(
         )
     }
 
+    /**
+     * Unlock PIN for the `unlock_screen` tool. Only reachable from adb (the receiver is DUMP-gated), so the
+     * PIN never travels over MCP. `--es unlock_pin ""` clears it; `--ez unlock_reset_lockout true` clears a
+     * lockout left by a failed attempt. The value is never logged.
+     */
+    private fun applyUnlockPin(
+        context: Context,
+        intent: Intent,
+    ) {
+        val store = UnlockPinStore(context)
+        if (intent.hasExtra(EXTRA_UNLOCK_PIN)) {
+            val value = intent.getStringExtra(EXTRA_UNLOCK_PIN) ?: ""
+            if (value.isEmpty()) {
+                store.clearPin()
+                Log.i(TAG, "Unlock PIN cleared")
+            } else {
+                runCatching { store.setPin(value) }
+                    .onSuccess { Log.i(TAG, "Unlock PIN updated (length=${value.length})") }
+                    .onFailure { Log.w(TAG, "Ignoring invalid unlock_pin: ${it.message}") }
+            }
+        }
+        if (intent.getBooleanExtra(EXTRA_UNLOCK_RESET_LOCKOUT, false)) {
+            store.resetLockout()
+            Log.i(TAG, "Unlock lockout cleared")
+        }
+    }
+
     private suspend fun applyDeviceSlug(intent: Intent) {
         if (!intent.hasExtra(EXTRA_DEVICE_SLUG)) return
         val value = intent.getStringExtra(EXTRA_DEVICE_SLUG) ?: ""
@@ -499,6 +528,8 @@ class AdbConfigHandler(
         internal const val EXTRA_BLOCK_LOCAL_NETWORK_DOWNLOADS = "block_local_network_downloads"
         internal const val EXTRA_DOWNLOAD_TIMEOUT_SECONDS = "download_timeout_seconds"
         internal const val EXTRA_DEVICE_SLUG = "device_slug"
+        internal const val EXTRA_UNLOCK_PIN = "unlock_pin"
+        internal const val EXTRA_UNLOCK_RESET_LOCKOUT = "unlock_reset_lockout"
         internal const val EXTRA_TOOL_PERMISSIONS = "tool_permissions"
         internal const val EXTRA_STORAGE_LOCATION_ID = "storage_location_id"
         internal const val EXTRA_STORAGE_ALLOW_WRITE = "storage_allow_write"

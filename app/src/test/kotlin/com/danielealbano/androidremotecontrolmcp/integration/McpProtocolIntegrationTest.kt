@@ -35,7 +35,7 @@ class McpProtocolIntegrationTest {
         }
 
     @Test
-    fun `listTools returns all 58 registered tools`() =
+    fun `listTools returns all 60 registered tools`() =
         runTest {
             McpIntegrationTestHelper.withTestApplication { client, _ ->
                 val result = client.listTools()
@@ -135,7 +135,7 @@ class McpProtocolIntegrationTest {
         }
 
     companion object {
-        private const val EXPECTED_TOOL_COUNT = 58
+        private const val EXPECTED_TOOL_COUNT = 60
 
         private val EXPECTED_TOOL_NAMES =
             setOf(
@@ -164,6 +164,8 @@ class McpProtocolIntegrationTest {
                 "android_open_notifications",
                 "android_open_quick_settings",
                 "android_dismiss_keyboard",
+                "android_unlock_screen",
+                "android_lock_screen",
                 // Text input
                 "android_type_append_text",
                 "android_type_insert_text",
