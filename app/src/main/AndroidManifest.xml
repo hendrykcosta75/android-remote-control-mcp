@@ -4,6 +4,7 @@
 
     <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Foreground services -->
@@ -157,6 +158,15 @@
 
         <!-- ADB Service Trampoline (headless start/stop via adb shell am start) -->
         <!-- Gated on DUMP (adb-shell-only) for the same reason as AdbConfigReceiver above. -->
+        <activity
+            android:name=".services.unlock.UnlockWakeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <activity
             android:name=".services.mcp.AdbServiceTrampolineActivity"
             android:exported="true"

@@ -385,4 +385,10 @@ fun registerSystemActionTools(
     if (perms.isToolEnabled(DismissKeyboardHandler.TOOL_NAME)) {
         DismissKeyboardHandler(actionExecutor, accessibilityServiceProvider).register(registrar, toolNamePrefix)
     }
+    if (perms.isToolEnabled(UnlockScreenHandler.TOOL_NAME)) {
+        UnlockScreenHandler(accessibilityServiceProvider).register(registrar, toolNamePrefix)
+    }
+    if (perms.isToolEnabled(LockScreenHandler.TOOL_NAME)) {
+        LockScreenHandler(accessibilityServiceProvider).register(registrar, toolNamePrefix)
+    }
 }

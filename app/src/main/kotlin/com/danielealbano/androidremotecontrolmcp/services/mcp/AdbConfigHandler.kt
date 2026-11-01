@@ -12,6 +12,7 @@ import com.danielealbano.androidremotecontrolmcp.data.model.TunnelProviderType
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.data.repository.SettingsRepository
 import com.danielealbano.androidremotecontrolmcp.services.storage.StorageLocationProvider
+import com.danielealbano.androidremotecontrolmcp.services.unlock.UnlockPinStore
 
 /**
  * Handles ADB configuration broadcast intents by parsing extras and
@@ -34,7 +35,7 @@ class AdbConfigHandler(
         intent: Intent,
     ) {
         when (intent.action) {
-            AdbConfigReceiver.ACTION_CONFIGURE -> handleConfigure(intent)
+            AdbConfigReceiver.ACTION_CONFIGURE -> handleConfigure(context, intent)
             AdbConfigReceiver.ACTION_START_SERVER -> handleStartServer(context)
             AdbConfigReceiver.ACTION_STOP_SERVER -> handleStopServer(context)
             else -> Log.w(TAG, "Ignoring unexpected action: ${intent.action}")
@@ -42,7 +43,10 @@ class AdbConfigHandler(
     }
 
     @Suppress("LongMethod")
-    private suspend fun handleConfigure(intent: Intent) {
+    private suspend fun handleConfigure(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.i(TAG, "Received ADB configuration broadcast")
         serverLogRepository.log(ServerLogEntry.Type.SETTINGS, "Configuration update received via ADB")
 
@@ -70,6 +74,7 @@ class AdbConfigHandler(
         applyDeviceSlug(intent)
         applyToolPermissions(intent)
         applyStorageLocationPermissions(intent)
+        applyUnlockPin(context, intent)
 
         Log.i(TAG, "ADB configuration applied successfully")
     }
@@ -317,6 +322,33 @@ class AdbConfigHandler(
         )
     }
 
+    /**
+     * Unlock PIN for the `unlock_screen` tool. Only reachable from adb (the receiver is DUMP-gated), so the
+     * PIN never travels over MCP. `--es unlock_pin ""` clears it; `--ez unlock_reset_lockout true` clears a
+     * lockout left by a failed attempt. The value is never logged.
+     */
+    private fun applyUnlockPin(
+        context: Context,
+        intent: Intent,
+    ) {
+        val store = UnlockPinStore(context)
+        if (intent.hasExtra(EXTRA_UNLOCK_PIN)) {
+            val value = intent.getStringExtra(EXTRA_UNLOCK_PIN) ?: ""
+            if (value.isEmpty()) {
+                store.clearPin()
+                Log.i(TAG, "Unlock PIN cleared")
+            } else {
+                runCatching { store.setPin(value) }
+                    .onSuccess { Log.i(TAG, "Unlock PIN updated (length=${value.length})") }
+                    .onFailure { Log.w(TAG, "Ignoring invalid unlock_pin: ${it.message}") }
+            }
+        }
+        if (intent.getBooleanExtra(EXTRA_UNLOCK_RESET_LOCKOUT, false)) {
+            store.resetLockout()
+            Log.i(TAG, "Unlock lockout cleared")
+        }
+    }
+
     private suspend fun applyDeviceSlug(intent: Intent) {
         if (!intent.hasExtra(EXTRA_DEVICE_SLUG)) return
         val value = intent.getStringExtra(EXTRA_DEVICE_SLUG) ?: ""
@@ -407,6 +439,8 @@ class AdbConfigHandler(
         internal const val EXTRA_ALLOW_UNVERIFIED_HTTPS_CERTS = "allow_unverified_https_certs"
         internal const val EXTRA_DOWNLOAD_TIMEOUT_SECONDS = "download_timeout_seconds"
         internal const val EXTRA_DEVICE_SLUG = "device_slug"
+        internal const val EXTRA_UNLOCK_PIN = "unlock_pin"
+        internal const val EXTRA_UNLOCK_RESET_LOCKOUT = "unlock_reset_lockout"
         internal const val EXTRA_TOOL_PERMISSIONS = "tool_permissions"
         internal const val EXTRA_STORAGE_LOCATION_ID = "storage_location_id"
         internal const val EXTRA_STORAGE_ALLOW_WRITE = "storage_allow_write"

@@ -220,6 +220,8 @@ android {
         applicationId = "com.danielealbano.androidremotecontrolmcp"
         minSdk = 33
         targetSdk = 34
+        // Optional single-ABI build: ./gradlew ... -PabiFilter=arm64-v8a (smaller APK for one device).
+        providers.gradleProperty("abiFilter").orNull?.let { ndk { abiFilters += it } }
         versionCode = versionCodeProp
         versionName = versionNameProp
     }
