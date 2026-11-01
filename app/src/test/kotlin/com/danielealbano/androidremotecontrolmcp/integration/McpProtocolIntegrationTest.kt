@@ -35,7 +35,7 @@ class McpProtocolIntegrationTest {
         }
 
     @Test
-    fun `listTools returns all 58 registered tools`() =
+    fun `listTools returns all 60 registered tools`() =
         runTest {
             McpIntegrationTestHelper.withTestApplication { client, _ ->
                 val result = client.listTools()
