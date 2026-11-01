@@ -34,10 +34,13 @@ object ScreenUnlocker {
         val wakeMethod: String? = null,
         val digitKeysFound: Int = 0,
         val confirmPressed: Boolean = false,
+        val swipes: Int = 0,
+        val systemUiWindows: Int = 0,
     ) {
         fun toJson(): String =
             """{"status":"$status","wake_method":${wakeMethod?.let { "\"$it\"" } ?: "null"},""" +
-                """"digit_keys_found":$digitKeysFound,"confirm_pressed":$confirmPressed}"""
+                """"digit_keys_found":$digitKeysFound,"confirm_pressed":$confirmPressed,""" +
+                """"swipes":$swipes,"systemui_windows":$systemUiWindows}"""
     }
 
     @Suppress("CyclomaticComplexMethod", "LongMethod", "ReturnCount")
@@ -60,20 +63,27 @@ object ScreenUnlocker {
                 wl.acquire(WAKE_LOCK_MS)
                 wake = if (waitFor(WAKE_WAIT_MS) { pm.isInteractive }) "wake_lock" else "none"
             }
-            // 2) Show the bouncer (also a second wake path through setTurnScreenOn).
-            startWakeActivity(service)
+            // 2) Fallback wake path only: a self-finishing activity with setTurnScreenOn. It must not stay on
+            //    top, because on One UI a show-when-locked activity occludes the keyguard and hides the keypad.
             if (wake == "none") {
+                startWakeActivity(service)
                 wake = if (waitFor(WAKE_WAIT_MS) { pm.isInteractive }) "activity" else "none"
                 if (wake == "none") return Outcome("wake_failed", wake)
+                delay(ACTIVITY_SETTLE_MS)
             }
 
-            // 3) Find a full numeric keypad; if absent, try a swipe up once.
-            var keys = waitForKeys(service, KEYPAD_WAIT_MS)
-            if (keys.size < DIGITS) {
+            // 3) Let the keyguard settle, then swipe up (at most twice) until a full numeric keypad shows up.
+            delay(KEYGUARD_SETTLE_MS)
+            var keys = findDigitKeys(service)
+            var swipes = 0
+            while (keys.size < DIGITS && swipes < MAX_SWIPES) {
                 swipeUp(service)
+                swipes++
                 keys = waitForKeys(service, KEYPAD_WAIT_MS)
             }
-            if (keys.size < DIGITS) return Outcome("keypad_not_found", wake, keys.size)
+            if (keys.size < DIGITS) {
+                return Outcome("keypad_not_found", wake, keys.size, swipes = swipes, systemUiWindows = systemUiRoots(service).size)
+            }
 
             // 4) Enter the PIN (pressing only keys that were found).
             val pin = store.readPin() ?: return Outcome("pin_unreadable", wake, keys.size)
@@ -96,9 +106,9 @@ object ScreenUnlocker {
             if (!ok) {
                 store.setLockedOut()
                 Log.w(TAG, "Unlock attempt failed; lockout set (clear via adb)")
-                return Outcome("unlock_failed_locked_out", wake, keys.size, confirmed)
+                return Outcome("unlock_failed_locked_out", wake, keys.size, confirmed, swipes)
             }
-            return Outcome("unlocked", wake, keys.size, confirmed)
+            return Outcome("unlocked", wake, keys.size, confirmed, swipes)
         } finally {
             if (wl.isHeld) wl.release()
         }
@@ -224,14 +234,17 @@ object ScreenUnlocker {
     private const val WAKE_LOCK_MS = 15_000L
     private const val WAKE_WAIT_MS = 2_500L
     private const val KEYPAD_WAIT_MS = 3_000L
+    private const val KEYGUARD_SETTLE_MS = 700L
+    private const val ACTIVITY_SETTLE_MS = 1_200L
+    private const val MAX_SWIPES = 2
     private const val KEY_GAP_MS = 120L
     private const val AUTO_SUBMIT_WAIT_MS = 1_200L
     private const val UNLOCK_WAIT_MS = 3_000L
     private const val POLL_MS = 100L
     private const val TAP_MS = 60L
     private const val SWIPE_MS = 300L
-    private const val SWIPE_FROM = 0.8f
-    private const val SWIPE_TO = 0.3f
+    private const val SWIPE_FROM = 0.85f
+    private const val SWIPE_TO = 0.35f
     private const val ANCESTOR_DEPTH = 4
     private const val MAX_DEPTH = 40
 }
