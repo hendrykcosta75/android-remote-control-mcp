@@ -14,7 +14,7 @@ import java.util.Base64
  * Fixture names MUST NOT contain double quotes, backticks, or '$' (double-quote shell quoting).
  */
 object StorageE2E {
-    const val APP_PACKAGE = "com.danielealbano.androidremotecontrolmcp.gms.debug"
+    const val APP_PACKAGE = "com.hendrykcosta.phonemcp.gms.debug"
     const val PERM_IMAGES = "android.permission.READ_MEDIA_IMAGES"
     const val PERM_VIDEO = "android.permission.READ_MEDIA_VIDEO"
     const val PERM_AUDIO = "android.permission.READ_MEDIA_AUDIO"

@@ -4,6 +4,7 @@ import com.danielealbano.androidremotecontrolmcp.data.model.ServerLogEntry
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.mcp.InFlightToolCalls
 import com.danielealbano.androidremotecontrolmcp.mcp.McpCaller
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.AccessibilityOnDemand
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.shared.currentRequestHandlerExtra
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
@@ -172,9 +173,12 @@ class LoggedToolRegistrar internal constructor(
             // The caller is bound to this request's session, whether the session runs the call inline or launches it
             val caller = inFlightToolCalls.callerOf(sessionId)
             // Logging outermost: withContext refuses to start in a cancelled request, which is still logged then
-            loggedToolHandler(serverLog, toolName, toolCallIndicator) { call ->
-                if (caller == null) cancellable(call) else withContext(caller) { cancellable(call) }
-            }(request)
+            // On-demand accessibility (opt-in) switches the service on before the call and the indicator need it
+            AccessibilityOnDemand.around(toolName) {
+                loggedToolHandler(serverLog, toolName, toolCallIndicator) { call ->
+                    if (caller == null) cancellable(call) else withContext(caller) { cancellable(call) }
+                }(request)
+            }
         }
     }
 }

@@ -217,7 +217,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.danielealbano.androidremotecontrolmcp"
+        applicationId = "com.hendrykcosta.phonemcp"
         minSdk = 33
         targetSdk = 34
         // Optional single-ABI build: ./gradlew ... -PabiFilter=arm64-v8a (smaller APK for one device).
@@ -498,7 +498,7 @@ androidComponents {
     // the release applicationId stays identical across flavors (`com.danielealbano.androidremotecontrolmcp`).
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.applicationId.set(
-            "com.danielealbano.androidremotecontrolmcp.${variant.flavorName}.debug",
+            "com.hendrykcosta.phonemcp.${variant.flavorName}.debug",
         )
     }
     onVariants { variant ->

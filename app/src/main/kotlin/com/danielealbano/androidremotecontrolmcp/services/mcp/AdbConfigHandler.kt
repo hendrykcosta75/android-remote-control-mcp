@@ -12,6 +12,7 @@ import com.danielealbano.androidremotecontrolmcp.data.model.ToolPermissionsConfi
 import com.danielealbano.androidremotecontrolmcp.data.model.TunnelProviderType
 import com.danielealbano.androidremotecontrolmcp.data.repository.ServerLogRepository
 import com.danielealbano.androidremotecontrolmcp.data.repository.SettingsRepository
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.AccessibilityOnDemand
 import com.danielealbano.androidremotecontrolmcp.services.storage.StorageLocationProvider
 import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTunnelEnrollment
 import com.danielealbano.androidremotecontrolmcp.services.tunnel.arctunnel.ArcTunnelEnv
@@ -93,6 +94,9 @@ class AdbConfigHandler(
         applyStorageLocationPermissions(intent)
         applyArcTunnelEnroll(intent)
         applyUnlockPin(context, intent)
+        if (intent.hasExtra(EXTRA_A11Y_ON_DEMAND)) {
+            AccessibilityOnDemand.setEnabled(context, intent.getBooleanExtra(EXTRA_A11Y_ON_DEMAND, false))
+        }
 
         Log.i(TAG, "ADB configuration applied successfully")
     }
@@ -530,6 +534,7 @@ class AdbConfigHandler(
         internal const val EXTRA_DEVICE_SLUG = "device_slug"
         internal const val EXTRA_UNLOCK_PIN = "unlock_pin"
         internal const val EXTRA_UNLOCK_RESET_LOCKOUT = "unlock_reset_lockout"
+        internal const val EXTRA_A11Y_ON_DEMAND = "a11y_on_demand"
         internal const val EXTRA_TOOL_PERMISSIONS = "tool_permissions"
         internal const val EXTRA_STORAGE_LOCATION_ID = "storage_location_id"
         internal const val EXTRA_STORAGE_ALLOW_WRITE = "storage_allow_write"
