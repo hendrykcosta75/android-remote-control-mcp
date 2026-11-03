@@ -718,6 +718,21 @@ Wakes the screen and unlocks the device by typing the PIN stored on the device i
 
 ---
 
+#### On-demand accessibility (fork option)
+
+Some apps (banking apps in particular) refuse to run while a sideloaded accessibility service is enabled. Opt-in on-demand mode keeps the service **off** while idle and switches it on only while a tool that needs it runs, switching it off again after 90 s without calls:
+
+```bash
+adb shell pm grant com.hendrykcosta.phonemcp android.permission.WRITE_SECURE_SETTINGS
+adb shell am broadcast -a com.danielealbano.androidremotecontrolmcp.ADB_CONFIGURE \
+  -n com.hendrykcosta.phonemcp/com.danielealbano.androidremotecontrolmcp.services.mcp.AdbConfigReceiver \
+  --ez a11y_on_demand true        # false keeps the service always on
+```
+
+The first call after an idle period takes ~2-3 s longer while the service connects. Notification, file, app-management, intent, camera and location tools never switch it on.
+
+---
+
 ### `android_lock_screen`
 
 Locks the device and turns the screen off (accessibility global action).

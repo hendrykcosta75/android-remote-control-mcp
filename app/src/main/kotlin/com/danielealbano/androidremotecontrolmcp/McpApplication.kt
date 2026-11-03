@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import com.danielealbano.androidremotecontrolmcp.data.repository.SettingsRepository
+import com.danielealbano.androidremotecontrolmcp.services.accessibility.AccessibilityOnDemand
 import com.danielealbano.androidremotecontrolmcp.services.apps.AppIconCache
 import com.danielealbano.androidremotecontrolmcp.services.update.UpdateCheckScheduler
 import com.danielealbano.androidremotecontrolmcp.startup.runFlavorStartupMigrations
@@ -46,6 +47,7 @@ class McpApplication :
         // on a background coroutine (non-blocking — must never stall onCreate). No-op in foss.
         runFlavorStartupMigrations(this)
         createNotificationChannels()
+        AccessibilityOnDemand.init(this)
         configureOsmdroid()
         appIconCache.preload()
         // Apply the one-time auth-model migration eagerly so the UI Flow reflects the migrated model
